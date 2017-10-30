@@ -1,4 +1,4 @@
-package deacklock;
+package com.eyesee.concurrency.deacklock;
 
 /**
  * Created by jessepi on 1/15/17.
