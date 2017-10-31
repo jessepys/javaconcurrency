@@ -55,4 +55,109 @@
   * 在某些情况下，我们希望获取锁但又不想一直等待，所以我们指定获取到锁的最大时间，如果获取不到就超时。内置锁对这种细粒度的控制是不支持的，JAVA提供了一种新的锁机制：显示锁。下章，我们就对该话题进行讨论。
  
 ### ReentrantLock
+ ReentrantLock是JAVA 5提供的细粒度的锁，作为内置锁在某些场景的补充。它实现了Lock的以下API：
  
+ 1 . void lock()  获取锁，一致等待直到获取。下面的例子中，在主线程中获取锁且不释放， 子线程调用lock方法来获取锁。可以看到，子线程一致处于RUNNABLE状态，即使它被interrupt。
+
+```      
+    @Test
+    public void testLockWithInterrupt() throws InterruptedException {
+        final Lock lock = new ReentrantLock();
+        lock.lock();
+        Thread childThread = new Thread(() -> {
+               lock.lock();
+            }, "t1 thread");
+        childThread.start();
+        childThread.interrupt();
+
+        LOG.info("the child thread state: {}", childThread.getState().name());
+        assertFalse(childThread.isInterrupted());
+    }
+```
+
+2 . void lockInterruptibly() throws InterruptedException; 获取锁直到线程被interrupt, 线程抛出InterruptedException。下面的例子中，主线程获取锁且不释放，子线程调用lockInterruptibly方法来获取锁。首先在子线程获取不到锁的时候，会处于一直等待状态；当主线程中调用子线程interrupt时，子线程会抛出InterruptedException。
+
+```
+	@Test(expected = InterruptedException.class)
+	public void testLockInterruptibly() throws Exception {
+	    final Lock lock = new ReentrantLock();
+	    lock.lock();
+	    Thread.sleep(1000);
+	    Thread mainThread = Thread.currentThread();
+	    Thread t1=new Thread(new Runnable(){
+	        @Override
+	        public void run() {
+	            try {
+	                lock.lockInterruptibly();
+	            } catch (InterruptedException e) {
+	                LOG.error(" thread interrupted: {}", e);
+	                mainThread.interrupt();
+	            }
+	        }
+	    }, "t1 thread");
+	    t1.start();
+	    Thread.sleep(1000);
+	    t1.interrupt();
+	    Thread.sleep(1000000);
+	}
+```
+
+3 . boolean tryLock() 获取锁，如果获取不到则立即返回false。
+
+```
+	@Test
+	public void testTryLock() throws InterruptedException {
+	    CountDownLatch countDownLatch = new CountDownLatch(1);
+	    ReentrantLock reentrantLock = new ReentrantLock();
+	    Runnable runnable = () -> {
+	        reentrantLock.lock();
+	        try {
+	            Thread.sleep(2 * 1000l);
+	            countDownLatch.countDown();
+	        } catch (InterruptedException e) {
+	            e.printStackTrace();
+	        } finally {
+	            reentrantLock.unlock();
+	        }
+	    };
+	
+	    Runnable interruptRunnable = () -> {
+	        boolean result = reentrantLock.tryLock();
+	        if (result) {
+	            LOG.info("lock success");
+	            reentrantLock.unlock();
+	        } else {
+	            LOG.info("lock failed");
+	        }
+	    };
+	
+	    new Thread(runnable).start();
+	    new Thread(interruptRunnable).start();
+	    countDownLatch.await();
+	}
+    
+```
+
+4 . boolean tryLock(long time, TimeUnit unit) throws InterruptedException 在指定的时间内获取锁，且返回结果。
+
+```
+@Test
+public void testTryLockWithTime() throws InterruptedException, ExecutionException {
+    final Lock lock = new ReentrantLock();
+    lock.lock();
+    CompletableFuture<Boolean> completableFuture = CompletableFuture.supplyAsync(() -> tryLock(lock));
+    assertFalse(completableFuture.get().booleanValue());
+}
+
+private boolean tryLock(Lock lock) {
+    try {
+        boolean result = lock.tryLock(100, TimeUnit.MILLISECONDS);
+        LOG.info("lock result: {}", result);
+        return result;
+    } catch (InterruptedException e) {
+        LOG.error("interrupted: {}", e);
+    }
+    return false;
+}
+    
+```
