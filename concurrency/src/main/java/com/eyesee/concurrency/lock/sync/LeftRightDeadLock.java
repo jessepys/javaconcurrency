@@ -1,4 +1,4 @@
-package com.eyesee.concurrency.deacklock;
+package com.eyesee.concurrency.lock.sync;
 
 /**
  * Created by jessepi on 1/14/17.
@@ -37,8 +37,6 @@ public class LeftRightDeadLock {
                 System.out.println("acess object a");
             }
         }
-
-
     }
 
     public static void main(String[] args) {

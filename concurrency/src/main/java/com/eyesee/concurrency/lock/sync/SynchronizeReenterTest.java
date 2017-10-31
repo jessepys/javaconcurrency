@@ -1,11 +1,11 @@
-package com.eyesee.concurrency.lock;
+package com.eyesee.concurrency.lock.sync;
 
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SynchronizedDeakLock {
-    private static final Logger LOG = LoggerFactory.getLogger(SynchronizedLock.class);
+public class SynchronizeReenterTest {
+    private static final Logger LOG = LoggerFactory.getLogger(SynchronizedLockTest.class);
 
     public class BaseClass {
         public synchronized void doPrint() {
