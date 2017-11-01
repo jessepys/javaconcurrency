@@ -55,7 +55,7 @@
   * 在某些情况下，我们希望获取锁但又不想一直等待，所以我们指定获取到锁的最大时间，如果获取不到就超时。内置锁对这种细粒度的控制是不支持的，JAVA提供了一种新的锁机制：显示锁。下章，我们就对该话题进行讨论。
  
 ### ReentrantLock
- ReentrantLock是JAVA 5提供的细粒度的锁，作为内置锁在某些场景的补充。它实现了Lock的以下API：
+ ReentrantLock是JAVA 5提供的细粒度的锁，作为内置锁在某些场景的补充。比如：支持线程获取锁的时间设置，支持获取锁线程对interrupt事件响应。但是在使用时必须显示的获取锁，然后在finally中释放。如果不释放，相当于在程序中放置了个定时炸弹，后期很难发现。它实现了Lock的以下API(部分例子为了达到测试效果没有unlock, 实际使用中绝对不能这样)：
  
  1 . void lock()  获取锁，一致等待直到获取。下面的例子中，在主线程中获取锁且不释放， 子线程调用lock方法来获取锁。可以看到，子线程一致处于RUNNABLE状态，即使它被interrupt。
 
@@ -160,4 +160,37 @@ private boolean tryLock(Lock lock) {
     return false;
 }
     
+```
+
+### Semaphore
+信号量常常用来控制对某一资源的访问数量。例如，下面的测试中我们设置信号量的permits为5，当其中5个现在获取且没释放，其它访问线程是获取不到permit的。
+
+```
+@Test
+public void testSemaphore() throws InterruptedException {
+    Semaphore semaphore = new Semaphore(5);
+    CountDownLatch countDownLatch = new CountDownLatch(2000);
+    Executor executor = Executors.newFixedThreadPool(10);
+
+    Runnable runnable = () -> {
+        boolean isAcquired = semaphore.tryAcquire();
+        if (isAcquired) {
+            try {
+                LOG.info("semaphore is acquired");
+                TimeUnit.MICROSECONDS.sleep(2);
+            } catch (InterruptedException ex) {
+                LOG.error("error: {}", ex);
+            } finally {
+                semaphore.release();
+            }
+        } else {
+            LOG.info("semaphore is not acquired");
+        }
+        countDownLatch.countDown();
+    };
+    IntStream.range(1, 2001).forEach(i ->
+            executor.execute(runnable)
+    );
+    countDownLatch.await();
+}
 ```
