@@ -4,14 +4,41 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.IntStream;
 
 public class ThreadPoolExecutorTest {
     private static final Logger LOG = LoggerFactory.getLogger(ThreadPoolExecutorTest.class);
+
+    /**
+     * The thread pool has dependency thread,  cause the dead lock.
+     */
+    @Test
+    public void testThreadPoolThreadDependency() {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Callable<String> stringRunnable = () -> {
+            return "test";
+        };
+        Callable<String> runnable = () -> {
+            Future<String> result = executor.submit(stringRunnable);
+            try {
+                return result.get();
+            } catch (InterruptedException e) {
+                return null;
+            } catch (ExecutionException e) {
+                return null;
+            }
+        };
+        try {
+            LOG.info(executor.submit(runnable).get());
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+    }
+
+
     @Test
     public void testThreadPoolRun() {
         Runnable runnable = () -> {

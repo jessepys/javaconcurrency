@@ -194,3 +194,53 @@ public void testSemaphore() throws InterruptedException {
     countDownLatch.await();
 }
 ```
+### 线程池(Thread pool)
+线程池中的任务相对独立，才能使它的性能达到最优。在线程池中，如果出现相互依赖的线程，这可能导致线程死锁。比如：我们开启一个只有1个线程的线程池，调用A任务时，A开始了B任务。然后A任务依赖B任务的完成。在实际执行中，A使用了线程池中的线程，B任务不能获取线程执行，导致A任务不停的处于等待，而B任务也在等待A释放线程。
+
+```
+    @Test
+    public void testThreadPoolThreadDependency() {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Callable<String> stringRunnable = () -> {
+            return "test";
+        };
+        Callable<String> runnable = () -> {
+            Future<String> result = executor.submit(stringRunnable);
+            try {
+                return result.get();
+            } catch (InterruptedException e) {
+                return null;
+            } catch (ExecutionException e) {
+                return null;
+            }
+        };
+        try {
+            LOG.info(executor.submit(runnable).get());
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+    }
+
+```
+运行上面测试，会发现处于一直等待的情况，查看thread dump：
+
+```
+"pool-1-thread-1" #11 prio=5 os_prio=31 tid=0x00007fd6d606f000 nid=0x5703 waiting on condition [0x0000000122af2000]
+   java.lang.Thread.State: WAITING (parking)
+        at sun.misc.Unsafe.park(Native Method)
+        - parking to wait for  <0x0000000795f453d8> (a java.util.concurrent.FutureTask)
+        at java.util.concurrent.locks.LockSupport.park(LockSupport.java:175)
+        at java.util.concurrent.FutureTask.awaitDone(FutureTask.java:429)
+        at java.util.concurrent.FutureTask.get(FutureTask.java:191)
+        at com.eyesee.concurrency.threadpool.ThreadPoolExecutorTest.lambda$testThreadPoolThreadDependency$1(ThreadPoolExecutorTest.java:25)
+        at com.eyesee.concurrency.threadpool.ThreadPoolExecutorTest$$Lambda$2/183264084.call(Unknown Source)
+        at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+        at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142)
+        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617)
+        at java.lang.Thread.run(Thread.java:745)
+
+   Locked ownable synchronizers:
+        - <0x0000000795f22fd0> (a java.util.concurrent.ThreadPoolExecutor$Worker)
+```
