@@ -9,8 +9,5 @@
         <module name="eyesee" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="eyesee" target="1.8" />
-    </bytecodeTargetLevel>
   </component>
 </project>
