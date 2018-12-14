@@ -18,7 +18,7 @@ public class ArraysSolution {
     @Test
     public void testRemoveDuplicate() {
         ArraysSolution arraysSolution = new ArraysSolution();
-        int[] tests = {1, 3, 5};
+        int[] tests = {0,0,1,1,1,2,2,3,3,4};
 
         int result = arraysSolution.removeDuplicates(tests);
 

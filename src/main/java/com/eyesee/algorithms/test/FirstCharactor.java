@@ -21,14 +21,14 @@ public class FirstCharactor {
     }
 
 
-    @Test
-    public void testGetFirstCharactorChinese() {
-        String test = "absdda中国繁体";
-
-        System.out.println((int)'A');
-        char result = getFirstCharactor(test);
-        assertThat(result).isEqualTo('b');
-    }
+//    @Test
+//    public void testGetFirstCharactorChinese() {
+//        String test = "absdda中国繁体";
+//
+//        System.out.println((int)'A');
+//        char result = getFirstCharactor(test);
+//        assertThat(result).isEqualTo('b');
+//    }
 
 
     public char getFirstCharactor(String value) {
